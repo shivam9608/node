@@ -46,10 +46,23 @@
 
 ### Notable Changes
 
-* [[`ae83c46557`](https://github.com/nodejs/node/commit/ae83c46557)] - **(SEMVER-MINOR)** **build**: reset embedder string to "-node.0" (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
-* [[`28ba1955b2`](https://github.com/nodejs/node/commit/28ba1955b2)] - **(SEMVER-MINOR)** **deps**: restore minimum ICU version to 68 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
-* [[`ac250562bf`](https://github.com/nodejs/node/commit/ac250562bf)] - **(SEMVER-MINOR)** **deps**: make V8 9.2 abi-compatible with 9.0 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
-* [[`070a0f9e85`](https://github.com/nodejs/node/commit/070a0f9e85)] - **(SEMVER-MINOR)** **deps**: update V8 to 9.2.230.21 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
+#### Say hello to V8 9.2
+
+The V8 engine is updated to version 9.2.230.21.
+
+It notably introduces the new [`Array.prototype.at`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at) method:
+
+```js
+const array = [1, 2, 3];
+
+console.log(array.at(-1));
+// Prints: 3
+```
+
+Contributed by Michaël Zasso - [#39470](https://github.com/nodejs/node/pull/39470)
+
+#### Other notable changes
+
 * [[`f93d2ac587`](https://github.com/nodejs/node/commit/f93d2ac587)] - **inspector**: mark as stable (Gireesh Punathil) [#37748](https://github.com/nodejs/node/pull/37748)
 * [[`10f1a8556f`](https://github.com/nodejs/node/commit/10f1a8556f)] - **(SEMVER-MINOR)** **perf_hooks**: web performance timeline compliance (legendecas) [#39297](https://github.com/nodejs/node/pull/39297)
 * [[`89b4770d5c`](https://github.com/nodejs/node/commit/89b4770d5c)] - **punycode**: add pending deprecation (Antoine du Hamel) [#38444](https://github.com/nodejs/node/pull/38444)
@@ -60,7 +73,7 @@
 * [[`672d573b5f`](https://github.com/nodejs/node/commit/672d573b5f)] - **async_hooks**: emit promise trace events from JS (Stephen Belanger) [#39135](https://github.com/nodejs/node/pull/39135)
 * [[`047d632cfb`](https://github.com/nodejs/node/commit/047d632cfb)] - **async_hooks**: eliminate native PromiseHook (Stephen Belanger) [#39135](https://github.com/nodejs/node/pull/39135)
 * [[`08007d586e`](https://github.com/nodejs/node/commit/08007d586e)] - **build**: use Node.js 14 in commit-lint.yml (Rich Trott) [#39506](https://github.com/nodejs/node/pull/39506)
-* [[`ae83c46557`](https://github.com/nodejs/node/commit/ae83c46557)] - **(SEMVER-MINOR)** **build**: reset embedder string to "-node.0" (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
+* [[`ae83c46557`](https://github.com/nodejs/node/commit/ae83c46557)] - **build**: reset embedder string to "-node.0" (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
 * [[`1a03304adc`](https://github.com/nodejs/node/commit/1a03304adc)] - **build**: fix `host_arch_cc()` for AIX/IBM i (Richard Lau) [#39481](https://github.com/nodejs/node/pull/39481)
 * [[`531f9f5184`](https://github.com/nodejs/node/commit/531f9f5184)] - **build**: update coverage Makefile target comments (Richard Lau) [#39365](https://github.com/nodejs/node/pull/39365)
 * [[`9437447cd3`](https://github.com/nodejs/node/commit/9437447cd3)] - **build**: run workflows when a PR is ready for review (Michaël Zasso) [#39405](https://github.com/nodejs/node/pull/39405)
@@ -69,7 +82,7 @@
 * [[`4ae5289525`](https://github.com/nodejs/node/commit/4ae5289525)] - **crypto**: support Big(U)Int64Array in getRandomValues (Michaël Zasso) [#39443](https://github.com/nodejs/node/pull/39443)
 * [[`285bf3a8ef`](https://github.com/nodejs/node/commit/285bf3a8ef)] - **debugger**: validate sec-websocket-accept response header (Chris Opperwall) [#39357](https://github.com/nodejs/node/pull/39357)
 * [[`dff8382b9d`](https://github.com/nodejs/node/commit/dff8382b9d)] - **debugger**: rename internal module (Rich Trott) [#39378](https://github.com/nodejs/node/pull/39378)
-* [[`28ba1955b2`](https://github.com/nodejs/node/commit/28ba1955b2)] - **(SEMVER-MINOR)** **deps**: restore minimum ICU version to 68 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
+* [[`28ba1955b2`](https://github.com/nodejs/node/commit/28ba1955b2)] - **deps**: restore minimum ICU version to 68 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
 * [[`ac250562bf`](https://github.com/nodejs/node/commit/ac250562bf)] - **(SEMVER-MINOR)** **deps**: make V8 9.2 abi-compatible with 9.0 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
 * [[`a445c253dc`](https://github.com/nodejs/node/commit/a445c253dc)] - **deps**: V8: backport 5c76da8ddcf8 (Michaël Zasso) [#39337](https://github.com/nodejs/node/pull/39337)
 * [[`e9704b1a3d`](https://github.com/nodejs/node/commit/e9704b1a3d)] - **deps**: V8: cherry-pick 359d44df4cdd (Michaël Zasso) [#39337](https://github.com/nodejs/node/pull/39337)
@@ -77,18 +90,18 @@
 * [[`897d4e86b6`](https://github.com/nodejs/node/commit/897d4e86b6)] - **deps**: V8: cherry-pick 56fe020eec0c (Michaël Zasso) [#39337](https://github.com/nodejs/node/pull/39337)
 * [[`796b504958`](https://github.com/nodejs/node/commit/796b504958)] - **deps**: V8: cherry-pick 2b77ca200c56 (Michaël Zasso) [#39337](https://github.com/nodejs/node/pull/39337)
 * [[`fbf981242b`](https://github.com/nodejs/node/commit/fbf981242b)] - **deps**: V8: cherry-pick 53784bdb8f01 (Michaël Zasso) [#39337](https://github.com/nodejs/node/pull/39337)
-* [[`58caf40879`](https://github.com/nodejs/node/commit/58caf40879)] - **(SEMVER-MAJOR)** **deps**: V8: cherry-pick 7ff6609a5385 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`a4f4cdd272`](https://github.com/nodejs/node/commit/a4f4cdd272)] - **(SEMVER-MAJOR)** **deps**: V8: cherry-pick a5cea1bfc38c (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`62f3ead15d`](https://github.com/nodejs/node/commit/62f3ead15d)] - **(SEMVER-MAJOR)** **deps**: V8: cherry-pick 986299250e6d (Richard Lau) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`fc0ce89883`](https://github.com/nodejs/node/commit/fc0ce89883)] - **(SEMVER-MAJOR)** **deps**: V8: backport 71e8f8bb3c26 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`07fcb6c880`](https://github.com/nodejs/node/commit/07fcb6c880)] - **(SEMVER-MAJOR)** **deps**: V8: cherry-pick 3d24b3ab8af0 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`40a11360e9`](https://github.com/nodejs/node/commit/40a11360e9)] - **(SEMVER-MAJOR)** **deps**: silence irrelevant V8 warning (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`aaa1d6a554`](https://github.com/nodejs/node/commit/aaa1d6a554)] - **(SEMVER-MAJOR)** **deps**: silence irrelevant V8 warnings (Michaël Zasso) [#37587](https://github.com/nodejs/node/pull/37587)
-* [[`5760c5ed40`](https://github.com/nodejs/node/commit/5760c5ed40)] - **(SEMVER-MAJOR)** **deps**: fix V8 build issue with inline methods (Jiawen Geng) [#35415](https://github.com/nodejs/node/pull/35415)
-* [[`a030c3696f`](https://github.com/nodejs/node/commit/a030c3696f)] - **(SEMVER-MAJOR)** **deps**: make v8.h compatible with VS2015 (Joao Reis) [#32116](https://github.com/nodejs/node/pull/32116)
-* [[`1921bb8537`](https://github.com/nodejs/node/commit/1921bb8537)] - **(SEMVER-MAJOR)** **deps**: V8: forward declaration of `Rtl*FunctionTable` (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
-* [[`b0c55f14d3`](https://github.com/nodejs/node/commit/b0c55f14d3)] - **(SEMVER-MAJOR)** **deps**: V8: patch register-arm64.h (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
-* [[`be7174954e`](https://github.com/nodejs/node/commit/be7174954e)] - **(SEMVER-MAJOR)** **deps**: V8: un-cherry-pick bd019bd (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
+* [[`58caf40879`](https://github.com/nodejs/node/commit/58caf40879)] - **deps**: V8: cherry-pick 7ff6609a5385 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`a4f4cdd272`](https://github.com/nodejs/node/commit/a4f4cdd272)] - **deps**: V8: cherry-pick a5cea1bfc38c (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`62f3ead15d`](https://github.com/nodejs/node/commit/62f3ead15d)] - **deps**: V8: cherry-pick 986299250e6d (Richard Lau) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`fc0ce89883`](https://github.com/nodejs/node/commit/fc0ce89883)] - **deps**: V8: backport 71e8f8bb3c26 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`07fcb6c880`](https://github.com/nodejs/node/commit/07fcb6c880)] - **deps**: V8: cherry-pick 3d24b3ab8af0 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`40a11360e9`](https://github.com/nodejs/node/commit/40a11360e9)] - **deps**: silence irrelevant V8 warning (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`aaa1d6a554`](https://github.com/nodejs/node/commit/aaa1d6a554)] - **deps**: silence irrelevant V8 warnings (Michaël Zasso) [#37587](https://github.com/nodejs/node/pull/37587)
+* [[`5760c5ed40`](https://github.com/nodejs/node/commit/5760c5ed40)] - **deps**: fix V8 build issue with inline methods (Jiawen Geng) [#35415](https://github.com/nodejs/node/pull/35415)
+* [[`a030c3696f`](https://github.com/nodejs/node/commit/a030c3696f)] - **deps**: make v8.h compatible with VS2015 (Joao Reis) [#32116](https://github.com/nodejs/node/pull/32116)
+* [[`1921bb8537`](https://github.com/nodejs/node/commit/1921bb8537)] - **deps**: V8: forward declaration of `Rtl*FunctionTable` (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
+* [[`b0c55f14d3`](https://github.com/nodejs/node/commit/b0c55f14d3)] - **deps**: V8: patch register-arm64.h (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
+* [[`be7174954e`](https://github.com/nodejs/node/commit/be7174954e)] - **deps**: V8: un-cherry-pick bd019bd (Refael Ackermann) [#32116](https://github.com/nodejs/node/pull/32116)
 * [[`070a0f9e85`](https://github.com/nodejs/node/commit/070a0f9e85)] - **(SEMVER-MINOR)** **deps**: update V8 to 9.2.230.21 (Michaël Zasso) [#39470](https://github.com/nodejs/node/pull/39470)
 * [[`b6d933619e`](https://github.com/nodejs/node/commit/b6d933619e)] - **deps**: bump HdrHistogram\_C to 0.11.2 (Matteo Collina) [#39462](https://github.com/nodejs/node/pull/39462)
 * [[`e3f2bc699f`](https://github.com/nodejs/node/commit/e3f2bc699f)] - **deps**: upgrade npm to 7.20.0 (npm team) [#39403](https://github.com/nodejs/node/pull/39403)
@@ -145,8 +158,8 @@
 * [[`c3973dd8a5`](https://github.com/nodejs/node/commit/c3973dd8a5)] - **process**: add api to enable source-maps programmatically (legendecas) [#39085](https://github.com/nodejs/node/pull/39085)
 * [[`89b4770d5c`](https://github.com/nodejs/node/commit/89b4770d5c)] - **punycode**: add pending deprecation (Antoine du Hamel) [#38444](https://github.com/nodejs/node/pull/38444)
 * [[`b67214fe31`](https://github.com/nodejs/node/commit/b67214fe31)] - **(SEMVER-MINOR)** **repl**: enable --experimental-repl-await /w opt-out (hemanth.hm) [#34733](https://github.com/nodejs/node/pull/34733)
-* [[`507e276d11`](https://github.com/nodejs/node/commit/507e276d11)] - **(SEMVER-MAJOR)** **src**: stop using deprecated v8::ApiObject (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`ed28c3a77c`](https://github.com/nodejs/node/commit/ed28c3a77c)] - **(SEMVER-MAJOR)** **src**: use non-deprecated Symbol::Description (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`507e276d11`](https://github.com/nodejs/node/commit/507e276d11)] - **src**: stop using deprecated v8::ApiObject (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`ed28c3a77c`](https://github.com/nodejs/node/commit/ed28c3a77c)] - **src**: use non-deprecated Symbol::Description (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
 * [[`5722d21f17`](https://github.com/nodejs/node/commit/5722d21f17)] - **src**: print native module id on native module not found (legendecas) [#39460](https://github.com/nodejs/node/pull/39460)
 * [[`7f63f992ad`](https://github.com/nodejs/node/commit/7f63f992ad)] - **src**: close HandleWraps instead of deleting them in OnGCCollect() (Anna Henningsen) [#39441](https://github.com/nodejs/node/pull/39441)
 * [[`a0f76a5720`](https://github.com/nodejs/node/commit/a0f76a5720)] - **src**: set SSL\_OP\_ALLOW\_CLIENT\_RENEGOTIATION (Daniel Bevenius) [#38753](https://github.com/nodejs/node/pull/38753)
@@ -155,9 +168,9 @@
 * [[`e44f6d2ac7`](https://github.com/nodejs/node/commit/e44f6d2ac7)] - **stream**: implement TextEncoderStream and TextDecoderStream (James M Snell) [#39347](https://github.com/nodejs/node/pull/39347)
 * [[`8fe7d23c17`](https://github.com/nodejs/node/commit/8fe7d23c17)] - **stream**: add readableDidRead (Robert Nagy) [#36820](https://github.com/nodejs/node/pull/36820)
 * [[`efe74746f0`](https://github.com/nodejs/node/commit/efe74746f0)] - **stream**: fixup property definition to avoid prototype polution (James M Snell) [#39371](https://github.com/nodejs/node/pull/39371)
-* [[`4e3ddb1cd2`](https://github.com/nodejs/node/commit/4e3ddb1cd2)] - **(SEMVER-MAJOR)** **test**: ensure microtask queues are not automatically drained (Jochen Eisinger) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`991d165627`](https://github.com/nodejs/node/commit/991d165627)] - **(SEMVER-MAJOR)** **test**: remove test-debug-args (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`b115823368`](https://github.com/nodejs/node/commit/b115823368)] - **(SEMVER-MAJOR)** **test**: update trace events test expectations (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`4e3ddb1cd2`](https://github.com/nodejs/node/commit/4e3ddb1cd2)] - **test**: ensure microtask queues are not automatically drained (Jochen Eisinger) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`991d165627`](https://github.com/nodejs/node/commit/991d165627)] - **test**: remove test-debug-args (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`b115823368`](https://github.com/nodejs/node/commit/b115823368)] - **test**: update trace events test expectations (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
 * [[`8bec70a67f`](https://github.com/nodejs/node/commit/8bec70a67f)] - **test**: fix WASI link test (Richard Lau) [#39485](https://github.com/nodejs/node/pull/39485)
 * [[`7357cae2eb`](https://github.com/nodejs/node/commit/7357cae2eb)] - **test**: update OpenSSL3 error messages for beta-1 (Daniel Bevenius) [#39437](https://github.com/nodejs/node/pull/39437)
 * [[`5132f6ff9e`](https://github.com/nodejs/node/commit/5132f6ff9e)] - ***Revert*** "**test**: skip tests for openssl-3.0.0-alpha15" (Daniel Bevenius) [#39437](https://github.com/nodejs/node/pull/39437)
@@ -165,8 +178,8 @@
 * [[`a2df5772c9`](https://github.com/nodejs/node/commit/a2df5772c9)] - **test**: add NumberFormat resolvedOptions test (Richard Lau) [#39401](https://github.com/nodejs/node/pull/39401)
 * [[`d0fb02c26a`](https://github.com/nodejs/node/commit/d0fb02c26a)] - **test**: put common lint exceptions into config file (Rich Trott) [#39358](https://github.com/nodejs/node/pull/39358)
 * [[`259d091366`](https://github.com/nodejs/node/commit/259d091366)] - **test**: mark test-domain-error-types flaky (James M Snell) [#39369](https://github.com/nodejs/node/pull/39369)
-* [[`fe6ba1727b`](https://github.com/nodejs/node/commit/fe6ba1727b)] - **(SEMVER-MAJOR)** **tools**: fetch googletest dependency for V8 CI (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
-* [[`45f6bdf20f`](https://github.com/nodejs/node/commit/45f6bdf20f)] - **(SEMVER-MAJOR)** **tools**: update V8 gypfiles for 9.2 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`fe6ba1727b`](https://github.com/nodejs/node/commit/fe6ba1727b)] - **tools**: fetch googletest dependency for V8 CI (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
+* [[`45f6bdf20f`](https://github.com/nodejs/node/commit/45f6bdf20f)] - **tools**: update V8 gypfiles for 9.2 (Michaël Zasso) [#38990](https://github.com/nodejs/node/pull/38990)
 * [[`4df65fd3cd`](https://github.com/nodejs/node/commit/4df65fd3cd)] - **tools**: flag README/mailmap mismatches in find-inactive-collaborators (Rich Trott) [#39477](https://github.com/nodejs/node/pull/39477)
 * [[`06d71e0dfb`](https://github.com/nodejs/node/commit/06d71e0dfb)] - **tools**: use mailmap for find-inactive-collaborators (Rich Trott) [#39432](https://github.com/nodejs/node/pull/39432)
 * [[`bb8e7a6fd4`](https://github.com/nodejs/node/commit/bb8e7a6fd4)] - **tools**: email matchin is case insensitive for .mailmap (Rich Trott) [#39430](https://github.com/nodejs/node/pull/39430)
