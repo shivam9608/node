@@ -4,7 +4,7 @@
 
 // Flags: --expose-wasm --experimental-wasm-eh
 
-load("test/mjsunit/wasm/wasm-module-builder.js");
+d8.file.execute("test/mjsunit/wasm/wasm-module-builder.js");
 
 // Helper function to return a new exported exception with the {kSig_v_v} type
 // signature from an anonymous module. The underlying module is thrown away.
@@ -53,7 +53,7 @@ function NewExportedException() {
       /module is not an object or function/);
   assertThrows(
       () => builder.instantiate({ m: {}}), WebAssembly.LinkError,
-      /exception import requires a WebAssembly.Exception/);
+      /tag import requires a WebAssembly.Tag/);
 })();
 
 (function TestImportValueMismatch() {
@@ -63,14 +63,14 @@ function NewExportedException() {
 
   assertThrows(
       () => builder.instantiate({ m: { ex: 23 }}), WebAssembly.LinkError,
-      /exception import requires a WebAssembly.Exception/);
+      /tag import requires a WebAssembly.Tag/);
   assertThrows(
       () => builder.instantiate({ m: { ex: {} }}), WebAssembly.LinkError,
-      /exception import requires a WebAssembly.Exception/);
+      /tag import requires a WebAssembly.Tag/);
   var monkey = Object.create(NewExportedException());
   assertThrows(
       () => builder.instantiate({ m: { ex: monkey }}), WebAssembly.LinkError,
-      /exception import requires a WebAssembly.Exception/);
+      /tag import requires a WebAssembly.Tag/);
 })();
 
 (function TestImportSignatureMismatch() {
@@ -81,7 +81,7 @@ function NewExportedException() {
 
   assertThrows(
       () => builder.instantiate({ m: { ex: exported }}), WebAssembly.LinkError,
-      /imported exception does not match the expected type/);
+      /imported tag does not match the expected type/);
 })();
 
 (function TestImportModuleGetImports() {

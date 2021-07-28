@@ -41,16 +41,17 @@
 #define V8_CODEGEN_PPC_ASSEMBLER_PPC_H_
 
 #include <stdio.h>
+
 #include <memory>
 #include <vector>
 
+#include "src/base/numbers/double.h"
 #include "src/codegen/assembler.h"
 #include "src/codegen/constant-pool.h"
 #include "src/codegen/external-reference.h"
 #include "src/codegen/label.h"
 #include "src/codegen/ppc/constants-ppc.h"
 #include "src/codegen/ppc/register-ppc.h"
-#include "src/numbers/double.h"
 #include "src/objects/smi.h"
 
 namespace v8 {
@@ -135,6 +136,8 @@ class V8_EXPORT_PRIVATE MemOperand {
   explicit MemOperand(Register rn, int32_t offset = 0);
 
   explicit MemOperand(Register ra, Register rb);
+
+  explicit MemOperand(Register ra, Register rb, int32_t offset);
 
   int32_t offset() const { return offset_; }
 
@@ -485,17 +488,33 @@ class Assembler : public AssemblerBase {
   inline void name(const Simd128Register rt, const Simd128Register rb) {  \
     vx_form(instr_name, rt, rb);                                          \
   }
+#define DECLARE_PPC_VX_INSTRUCTIONS_E_FORM(name, instr_name, instr_value) \
+  inline void name(const Simd128Register rt, const Operand& imm) {        \
+    vx_form(instr_name, rt, imm);                                         \
+  }
+#define DECLARE_PPC_VX_INSTRUCTIONS_F_FORM(name, instr_name, instr_value) \
+  inline void name(const Register rt, const Simd128Register rb) {         \
+    vx_form(instr_name, rt, rb);                                          \
+  }
 
   inline void vx_form(Instr instr, Simd128Register rt, Simd128Register rb,
                       const Operand& imm) {
-    emit(instr | rt.code() * B21 | imm.immediate() * B16 | rb.code() * B11);
+    emit(instr | (rt.code() & 0x1F) * B21 | (imm.immediate() & 0x1F) * B16 |
+         (rb.code() & 0x1F) * B11);
   }
   inline void vx_form(Instr instr, Simd128Register rt, Simd128Register ra,
                       Simd128Register rb) {
-    emit(instr | rt.code() * B21 | ra.code() * B16 | rb.code() * B11);
+    emit(instr | (rt.code() & 0x1F) * B21 | ra.code() * B16 |
+         (rb.code() & 0x1F) * B11);
   }
   inline void vx_form(Instr instr, Simd128Register rt, Simd128Register rb) {
-    emit(instr | rt.code() * B21 | rb.code() * B11);
+    emit(instr | (rt.code() & 0x1F) * B21 | (rb.code() & 0x1F) * B11);
+  }
+  inline void vx_form(Instr instr, Simd128Register rt, const Operand& imm) {
+    emit(instr | (rt.code() & 0x1F) * B21 | (imm.immediate() & 0x1F) * B16);
+  }
+  inline void vx_form(Instr instr, Register rt, Simd128Register rb) {
+    emit(instr | (rt.code() & 0x1F) * B21 | (rb.code() & 0x1F) * B11);
   }
 
   PPC_VX_OPCODE_A_FORM_LIST(DECLARE_PPC_VX_INSTRUCTIONS_A_FORM)
@@ -504,9 +523,13 @@ class Assembler : public AssemblerBase {
   PPC_VX_OPCODE_D_FORM_LIST(
       DECLARE_PPC_VX_INSTRUCTIONS_C_FORM) /* OPCODE_D_FORM can use
                                              INSTRUCTIONS_C_FORM */
+  PPC_VX_OPCODE_E_FORM_LIST(DECLARE_PPC_VX_INSTRUCTIONS_E_FORM)
+  PPC_VX_OPCODE_F_FORM_LIST(DECLARE_PPC_VX_INSTRUCTIONS_F_FORM)
 #undef DECLARE_PPC_VX_INSTRUCTIONS_A_FORM
 #undef DECLARE_PPC_VX_INSTRUCTIONS_B_FORM
 #undef DECLARE_PPC_VX_INSTRUCTIONS_C_FORM
+#undef DECLARE_PPC_VX_INSTRUCTIONS_E_FORM
+#undef DECLARE_PPC_VX_INSTRUCTIONS_F_FORM
 
 #define DECLARE_PPC_VA_INSTRUCTIONS_A_FORM(name, instr_name, instr_value) \
   inline void name(const Simd128Register rt, const Simd128Register ra,    \
@@ -516,8 +539,8 @@ class Assembler : public AssemblerBase {
 
   inline void va_form(Instr instr, Simd128Register rt, Simd128Register ra,
                       Simd128Register rb, Simd128Register rc) {
-    emit(instr | rt.code() * B21 | ra.code() * B16 | rb.code() * B11 |
-         rc.code() * B6);
+    emit(instr | (rt.code() & 0x1F) * B21 | (ra.code() & 0x1F) * B16 |
+         (rb.code() & 0x1F) * B11 | (rc.code() & 0x1F) * B6);
   }
 
   PPC_VA_OPCODE_A_FORM_LIST(DECLARE_PPC_VA_INSTRUCTIONS_A_FORM)
@@ -531,8 +554,8 @@ class Assembler : public AssemblerBase {
 
   inline void vc_form(Instr instr, Simd128Register rt, Simd128Register ra,
                       Simd128Register rb, int rc) {
-    emit(instr | rt.code() * B21 | ra.code() * B16 | rb.code() * B11 |
-         rc * B10);
+    emit(instr | (rt.code() & 0x1F) * B21 | (ra.code() & 0x1F) * B16 |
+         (rb.code() & 0x1F) * B11 | rc * B10);
   }
 
   PPC_VC_OPCODE_LIST(DECLARE_PPC_VC_INSTRUCTIONS)
@@ -551,6 +574,7 @@ class Assembler : public AssemblerBase {
   void DataAlign(int m);
   // Aligns code to something that's optimal for a jump target for the platform.
   void CodeTargetAlign();
+  void LoopHeaderAlign() { CodeTargetAlign(); }
 
   // Branch instructions
   void bclr(BOfield bo, int condition_bit, LKBit lk);
@@ -812,6 +836,7 @@ class Assembler : public AssemblerBase {
 
   void mulhw(Register dst, Register src1, Register src2, RCBit r = LeaveRC);
   void mulhwu(Register dst, Register src1, Register src2, RCBit r = LeaveRC);
+  void mulli(Register dst, Register src, const Operand& imm);
 
   void divw(Register dst, Register src1, Register src2, OEBit o = LeaveOE,
             RCBit r = LeaveRC);
@@ -1037,12 +1062,12 @@ class Assembler : public AssemblerBase {
   void lxsibzx(const Simd128Register rt, const MemOperand& src);
   void lxsihzx(const Simd128Register rt, const MemOperand& src);
   void lxsiwzx(const Simd128Register rt, const MemOperand& src);
-  void stxsdx(const Simd128Register rs, const MemOperand& src);
-  void stxsibx(const Simd128Register rs, const MemOperand& src);
-  void stxsihx(const Simd128Register rs, const MemOperand& src);
-  void stxsiwx(const Simd128Register rs, const MemOperand& src);
-  void stxvd(const Simd128Register rt, const MemOperand& src);
-  void stxvx(const Simd128Register rt, const MemOperand& src);
+  void stxsdx(const Simd128Register rs, const MemOperand& dst);
+  void stxsibx(const Simd128Register rs, const MemOperand& dst);
+  void stxsihx(const Simd128Register rs, const MemOperand& dst);
+  void stxsiwx(const Simd128Register rs, const MemOperand& dst);
+  void stxvd(const Simd128Register rt, const MemOperand& dst);
+  void stxvx(const Simd128Register rt, const MemOperand& dst);
   void xxspltib(const Simd128Register rt, const Operand& imm);
 
   // Pseudo instructions
@@ -1240,7 +1265,7 @@ class Assembler : public AssemblerBase {
          !RelocInfo::IsWasmCall(rmode) && !RelocInfo::IsWasmStubCall(rmode));
     return constant_pool_builder_.AddEntry(pc_offset(), value, sharing_ok);
   }
-  ConstantPoolEntry::Access ConstantPoolAddEntry(Double value) {
+  ConstantPoolEntry::Access ConstantPoolAddEntry(base::Double value) {
     return constant_pool_builder_.AddEntry(pc_offset(), value);
   }
 

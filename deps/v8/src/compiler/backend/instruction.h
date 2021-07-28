@@ -11,6 +11,7 @@
 #include <set>
 
 #include "src/base/compiler-specific.h"
+#include "src/base/numbers/double.h"
 #include "src/codegen/external-reference.h"
 #include "src/codegen/register-arch.h"
 #include "src/codegen/source-position.h"
@@ -20,7 +21,6 @@
 #include "src/compiler/feedback-source.h"
 #include "src/compiler/frame.h"
 #include "src/compiler/opcodes.h"
-#include "src/numbers/double.h"
 #include "src/zone/zone-allocator.h"
 
 namespace v8 {
@@ -1147,9 +1147,9 @@ class V8_EXPORT_PRIVATE Constant final {
     return bit_cast<uint32_t>(static_cast<int32_t>(value_));
   }
 
-  Double ToFloat64() const {
+  base::Double ToFloat64() const {
     DCHECK_EQ(kFloat64, type());
-    return Double(bit_cast<uint64_t>(value_));
+    return base::Double(bit_cast<uint64_t>(value_));
   }
 
   ExternalReference ToExternalReference() const {
@@ -1537,7 +1537,8 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   }
   inline bool IsLoopHeader() const { return loop_end_.IsValid(); }
   inline bool IsSwitchTarget() const { return switch_target_; }
-  inline bool ShouldAlign() const { return alignment_; }
+  inline bool ShouldAlignCodeTarget() const { return code_target_alignment_; }
+  inline bool ShouldAlignLoopHeader() const { return loop_header_alignment_; }
 
   using Predecessors = ZoneVector<RpoNumber>;
   Predecessors& predecessors() { return predecessors_; }
@@ -1560,7 +1561,8 @@ class V8_EXPORT_PRIVATE InstructionBlock final
 
   void set_ao_number(RpoNumber ao_number) { ao_number_ = ao_number; }
 
-  void set_alignment(bool val) { alignment_ = val; }
+  void set_code_target_alignment(bool val) { code_target_alignment_ = val; }
+  void set_loop_header_alignment(bool val) { loop_header_alignment_ = val; }
 
   void set_switch_target(bool val) { switch_target_ = val; }
 
@@ -1585,13 +1587,16 @@ class V8_EXPORT_PRIVATE InstructionBlock final
   RpoNumber dominator_;
   int32_t code_start_;   // start index of arch-specific code.
   int32_t code_end_ = -1;     // end index of arch-specific code.
-  const bool deferred_;       // Block contains deferred code.
-  bool handler_;              // Block is a handler entry point.
-  bool switch_target_ = false;
-  bool alignment_ = false;  // insert alignment before this block
-  bool needs_frame_ = false;
-  bool must_construct_frame_ = false;
-  bool must_deconstruct_frame_ = false;
+  const bool deferred_ : 1;   // Block contains deferred code.
+  bool handler_ : 1;          // Block is a handler entry point.
+  bool switch_target_ : 1;
+  bool code_target_alignment_ : 1;  // insert code target alignment before this
+                                    // block
+  bool loop_header_alignment_ : 1;  // insert loop header alignment before this
+                                    // block
+  bool needs_frame_ : 1;
+  bool must_construct_frame_ : 1;
+  bool must_deconstruct_frame_ : 1;
 };
 
 class InstructionSequence;

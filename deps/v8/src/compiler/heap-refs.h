@@ -57,6 +57,13 @@ inline bool IsAnyStore(AccessMode mode) {
 
 enum class SerializationPolicy { kAssumeSerialized, kSerializeIfNeeded };
 
+// Clarifies in function signatures that a method may only be called when
+// concurrent inlining is disabled.
+class NotConcurrentInliningTag final {
+ public:
+  explicit NotConcurrentInliningTag(JSHeapBroker* broker);
+};
+
 enum class OddballType : uint8_t {
   kNone,     // Not an Oddball.
   kBoolean,  // True or False.
@@ -73,22 +80,21 @@ enum class RefSerializationKind {
   kNeverSerialized,
   // Can be serialized on demand from the background thread.
   kBackgroundSerialized,
-  kSerialized,
 };
 
 // This list is sorted such that subtypes appear before their supertypes.
 // DO NOT VIOLATE THIS PROPERTY!
 #define HEAP_BROKER_OBJECT_LIST(V)                                        \
   /* Subtypes of JSObject */                                              \
-  V(JSArray, RefSerializationKind::kSerialized)                           \
-  V(JSBoundFunction, RefSerializationKind::kSerialized)                   \
-  V(JSDataView, RefSerializationKind::kSerialized)                        \
-  V(JSFunction, RefSerializationKind::kSerialized)                        \
-  V(JSGlobalObject, RefSerializationKind::kSerialized)                    \
-  V(JSGlobalProxy, RefSerializationKind::kSerialized)                     \
-  V(JSTypedArray, RefSerializationKind::kSerialized)                      \
+  V(JSArray, RefSerializationKind::kBackgroundSerialized)                 \
+  V(JSBoundFunction, RefSerializationKind::kBackgroundSerialized)         \
+  V(JSDataView, RefSerializationKind::kBackgroundSerialized)              \
+  V(JSFunction, RefSerializationKind::kBackgroundSerialized)              \
+  V(JSGlobalObject, RefSerializationKind::kBackgroundSerialized)          \
+  V(JSGlobalProxy, RefSerializationKind::kBackgroundSerialized)           \
+  V(JSTypedArray, RefSerializationKind::kBackgroundSerialized)            \
   /* Subtypes of Context */                                               \
-  V(NativeContext, RefSerializationKind::kSerialized)                     \
+  V(NativeContext, RefSerializationKind::kNeverSerialized)                \
   /* Subtypes of FixedArray */                                            \
   V(ObjectBoilerplateDescription, RefSerializationKind::kNeverSerialized) \
   V(ScriptContextTable, RefSerializationKind::kBackgroundSerialized)      \
@@ -102,16 +108,17 @@ enum class RefSerializationKind {
   V(String, RefSerializationKind::kNeverSerialized)                       \
   V(Symbol, RefSerializationKind::kNeverSerialized)                       \
   /* Subtypes of JSReceiver */                                            \
-  V(JSObject, RefSerializationKind::kSerialized)                          \
+  V(JSObject, RefSerializationKind::kBackgroundSerialized)                \
   /* Subtypes of HeapObject */                                            \
   V(AccessorInfo, RefSerializationKind::kNeverSerialized)                 \
-  V(AllocationSite, RefSerializationKind::kSerialized)                    \
+  V(AllocationSite, RefSerializationKind::kNeverSerialized)               \
   V(ArrayBoilerplateDescription, RefSerializationKind::kNeverSerialized)  \
   V(BigInt, RefSerializationKind::kBackgroundSerialized)                  \
   V(CallHandlerInfo, RefSerializationKind::kNeverSerialized)              \
   V(Cell, RefSerializationKind::kNeverSerialized)                         \
   V(Code, RefSerializationKind::kNeverSerialized)                         \
-  V(Context, RefSerializationKind::kSerialized)                           \
+  V(CodeDataContainer, RefSerializationKind::kNeverSerialized)            \
+  V(Context, RefSerializationKind::kNeverSerialized)                      \
   V(DescriptorArray, RefSerializationKind::kNeverSerialized)              \
   V(FeedbackCell, RefSerializationKind::kNeverSerialized)                 \
   V(FeedbackVector, RefSerializationKind::kNeverSerialized)               \
@@ -160,16 +167,14 @@ struct ref_traits<Object> {
 
 class V8_EXPORT_PRIVATE ObjectRef {
  public:
-  ObjectRef(JSHeapBroker* broker, Handle<Object> object,
-            bool check_type = true);
   ObjectRef(JSHeapBroker* broker, ObjectData* data, bool check_type = true)
       : data_(data), broker_(broker) {
     CHECK_NOT_NULL(data_);
   }
+
   Handle<Object> object() const;
 
   bool equals(const ObjectRef& other) const;
-  bool ShouldHaveBeenSerialized() const;
 
   bool IsSmi() const;
   int AsSmi() const;
@@ -188,6 +193,8 @@ class V8_EXPORT_PRIVATE ObjectRef {
 
   base::Optional<bool> TryGetBooleanValue() const;
   Maybe<double> OddballToNumber() const;
+
+  bool should_access_heap() const;
 
   Isolate* isolate() const;
 
@@ -278,6 +285,10 @@ class HeapObjectRef : public ObjectRef {
 
   MapRef map() const;
 
+  // Only for use in special situations where we need to read the object's
+  // current map (instead of returning the cached map). Use with care.
+  base::Optional<MapRef> map_direct_read() const;
+
   // See the comment on the HeapObjectType class.
   HeapObjectType GetHeapObjectType() const;
 };
@@ -288,13 +299,12 @@ class PropertyCellRef : public HeapObjectRef {
 
   Handle<PropertyCell> object() const;
 
-  // Can be called from a background thread.
-  V8_WARN_UNUSED_RESULT bool Serialize() const;
-  void SerializeAsProtector() const {
-    bool serialized = Serialize();
+  V8_WARN_UNUSED_RESULT bool Cache() const;
+  void CacheAsProtector() const {
+    bool cached = Cache();
     // A protector always holds a Smi value and its cell type never changes, so
-    // Serialize can't fail.
-    CHECK(serialized);
+    // Cache can't fail.
+    CHECK(cached);
   }
 
   PropertyDetails property_details() const;
@@ -314,34 +324,59 @@ class JSObjectRef : public JSReceiverRef {
 
   Handle<JSObject> object() const;
 
-  ObjectRef RawFastPropertyAt(FieldIndex index) const;
+  base::Optional<ObjectRef> raw_properties_or_hash() const;
+
+  // Usable only for in-object properties. Only use this if the underlying
+  // value can be an uninitialized-sentinel, or if HeapNumber construction must
+  // be avoided for some reason. Otherwise, use the higher-level
+  // GetOwnFastDataProperty.
+  base::Optional<ObjectRef> RawInobjectPropertyAt(FieldIndex index) const;
 
   // Return the element at key {index} if {index} is known to be an own data
-  // property of the object that is non-writable and non-configurable.
+  // property of the object that is non-writable and non-configurable. If
+  // {dependencies} is non-null, a dependency will be taken to protect
+  // against inconsistency due to weak memory concurrency.
   base::Optional<ObjectRef> GetOwnConstantElement(
-      uint32_t index, SerializationPolicy policy =
-                          SerializationPolicy::kAssumeSerialized) const;
+      const FixedArrayBaseRef& elements_ref, uint32_t index,
+      CompilationDependencies* dependencies,
+      SerializationPolicy policy =
+          SerializationPolicy::kAssumeSerialized) const;
+  // The direct-read implementation of the above, extracted into a helper since
+  // it's also called from compilation-dependency validation. This helper is
+  // guaranteed to not create new Ref instances.
+  base::Optional<Object> GetOwnConstantElementFromHeap(
+      FixedArrayBase elements, ElementsKind elements_kind,
+      uint32_t index) const;
 
   // Return the value of the property identified by the field {index}
   // if {index} is known to be an own data property of the object.
+  // If {dependencies} is non-null, and a property was successfully read,
+  // then the function will take a dependency to check the value of the
+  // property at code finalization time.
   base::Optional<ObjectRef> GetOwnFastDataProperty(
       Representation field_representation, FieldIndex index,
+      CompilationDependencies* dependencies,
       SerializationPolicy policy =
           SerializationPolicy::kAssumeSerialized) const;
 
   // Return the value of the dictionary property at {index} in the dictionary
   // if {index} is known to be an own data property of the object.
-  ObjectRef GetOwnDictionaryProperty(
-      InternalIndex index, SerializationPolicy policy =
-                               SerializationPolicy::kAssumeSerialized) const;
+  base::Optional<ObjectRef> GetOwnDictionaryProperty(
+      InternalIndex index, CompilationDependencies* dependencies,
+      SerializationPolicy policy =
+          SerializationPolicy::kAssumeSerialized) const;
 
-  base::Optional<FixedArrayBaseRef> elements() const;
-  void SerializeElements();
-  void EnsureElementsTenured();
-  ElementsKind GetElementsKind() const;
+  // When concurrent inlining is enabled, reads the elements through a direct
+  // relaxed read. This is to ease the transition to unserialized (or
+  // background-serialized) elements.
+  base::Optional<FixedArrayBaseRef> elements(RelaxedLoadTag) const;
+  void SerializeElements(NotConcurrentInliningTag tag);
+  bool IsElementsTenured(const FixedArrayBaseRef& elements);
 
-  void SerializeObjectCreateMap();
+  void SerializeObjectCreateMap(NotConcurrentInliningTag tag);
   base::Optional<MapRef> GetObjectCreateMap() const;
+
+  void SerializeAsBoilerplateRecursive(NotConcurrentInliningTag tag);
 };
 
 class JSDataViewRef : public JSObjectRef {
@@ -359,12 +394,12 @@ class JSBoundFunctionRef : public JSObjectRef {
 
   Handle<JSBoundFunction> object() const;
 
-  bool Serialize();
-  bool serialized() const;
+  bool Serialize(NotConcurrentInliningTag tag);
 
-  // The following are available only after calling Serialize().
-  JSReceiverRef bound_target_function() const;
-  ObjectRef bound_this() const;
+  // TODO(neis): Make return types non-optional once JSFunction is no longer
+  // fg-serialized.
+  base::Optional<JSReceiverRef> bound_target_function() const;
+  base::Optional<ObjectRef> bound_this() const;
   FixedArrayRef bound_arguments() const;
 };
 
@@ -374,33 +409,34 @@ class V8_EXPORT_PRIVATE JSFunctionRef : public JSObjectRef {
 
   Handle<JSFunction> object() const;
 
-  bool has_feedback_vector() const;
-  bool has_initial_map() const;
-  bool has_prototype() const;
-  bool PrototypeRequiresRuntimeLookup() const;
+  // Returns true, iff the serialized JSFunctionData contents are consistent
+  // with the state of the underlying JSFunction object. Must be called from
+  // the main thread.
+  bool IsConsistentWithHeapState() const;
 
-  void Serialize();
-  bool serialized() const;
+  // TODO(jgruber): Consider more fine-grained dependencies that keep track of
+  // which fields were actually inspected during compilation.
+  bool has_feedback_vector(CompilationDependencies* dependencies) const;
+  bool has_initial_map(CompilationDependencies* dependencies) const;
+  bool PrototypeRequiresRuntimeLookup(
+      CompilationDependencies* dependencies) const;
+  bool has_instance_prototype(CompilationDependencies* dependencies) const;
+  ObjectRef instance_prototype(CompilationDependencies* dependencies) const;
+  MapRef initial_map(CompilationDependencies* dependencies) const;
+  ContextRef context(CompilationDependencies* dependencies) const;
+  NativeContextRef native_context(CompilationDependencies* dependencies) const;
+  SharedFunctionInfoRef shared(CompilationDependencies* dependencies) const;
+  int InitialMapInstanceSizeWithMinSlack(
+      CompilationDependencies* dependencies) const;
+  FeedbackVectorRef feedback_vector(
+      CompilationDependencies* dependencies) const;
+  FeedbackCellRef raw_feedback_cell(
+      CompilationDependencies* dependencies) const;
 
-  // The following are available only after calling Serialize().
-  ObjectRef prototype() const;
-  MapRef initial_map() const;
-  ContextRef context() const;
-  NativeContextRef native_context() const;
-  SharedFunctionInfoRef shared() const;
-  int InitialMapInstanceSizeWithMinSlack() const;
-
-  void SerializeCodeAndFeedback();
-  bool serialized_code_and_feedback() const;
-
-  // The following are available only after calling SerializeCodeAndFeedback().
-  // TODO(mvstanton): Once we allow inlining of functions we didn't see
-  // during serialization, we do need to ensure that any feedback vector
-  // we read here has been fully initialized (ie, store-ordered into the
-  // cell).
-  FeedbackVectorRef feedback_vector() const;
-  FeedbackCellRef raw_feedback_cell() const;
   CodeRef code() const;
+
+ private:
+  void RecordDependencyIfNeeded(CompilationDependencies* dependencies) const;
 };
 
 class RegExpBoilerplateDescriptionRef : public HeapObjectRef {
@@ -409,7 +445,7 @@ class RegExpBoilerplateDescriptionRef : public HeapObjectRef {
 
   Handle<RegExpBoilerplateDescription> object() const;
 
-  void Serialize();
+  void Serialize(NotConcurrentInliningTag tag);
 
   FixedArrayRef data() const;
   StringRef source() const;
@@ -428,6 +464,7 @@ class HeapNumberRef : public HeapObjectRef {
   Handle<HeapNumber> object() const;
 
   double value() const;
+  uint64_t value_as_bits() const;
 };
 
 class ContextRef : public HeapObjectRef {
@@ -438,91 +475,67 @@ class ContextRef : public HeapObjectRef {
 
   // {previous} decrements {depth} by 1 for each previous link successfully
   // followed. If {depth} != 0 on function return, then it only got partway to
-  // the desired depth. If {serialize} is true, then {previous} will cache its
-  // findings (unless concurrent inlining is enabled).
-  ContextRef previous(size_t* depth,
-                      SerializationPolicy policy =
-                          SerializationPolicy::kAssumeSerialized) const;
+  // the desired depth.
+  ContextRef previous(size_t* depth) const;
 
   // Only returns a value if the index is valid for this ContextRef.
-  base::Optional<ObjectRef> get(
-      int index, SerializationPolicy policy =
-                     SerializationPolicy::kAssumeSerialized) const;
-
-  SourceTextModuleRef GetModule(SerializationPolicy policy) const;
+  base::Optional<ObjectRef> get(int index) const;
 };
 
 // TODO(jgruber): Don't serialize NativeContext fields once all refs can be
 // created concurrently.
 
-#define BROKER_COMPULSORY_NATIVE_CONTEXT_FIELDS(V) \
-  V(JSFunction, array_function)                    \
-  V(JSFunction, function_prototype_apply)          \
-  V(JSFunction, boolean_function)                  \
-  V(JSFunction, bigint_function)                   \
-  V(JSFunction, number_function)                   \
-  V(JSFunction, object_function)                   \
-  V(JSFunction, promise_function)                  \
-  V(JSFunction, promise_then)                      \
-  V(JSFunction, regexp_function)                   \
-  V(JSFunction, string_function)                   \
-  V(JSFunction, symbol_function)                   \
-  V(JSGlobalObject, global_object)                 \
-  V(JSGlobalProxy, global_proxy_object)            \
-  V(JSObject, promise_prototype)                   \
-  V(Map, bound_function_with_constructor_map)      \
-  V(Map, bound_function_without_constructor_map)   \
-  V(Map, js_array_holey_double_elements_map)       \
-  V(Map, js_array_holey_elements_map)              \
-  V(Map, js_array_holey_smi_elements_map)          \
-  V(Map, js_array_packed_double_elements_map)      \
-  V(Map, js_array_packed_elements_map)             \
-  V(Map, js_array_packed_smi_elements_map)         \
+#define BROKER_NATIVE_CONTEXT_FIELDS(V)          \
+  V(JSFunction, array_function)                  \
+  V(JSFunction, bigint_function)                 \
+  V(JSFunction, boolean_function)                \
+  V(JSFunction, function_prototype_apply)        \
+  V(JSFunction, number_function)                 \
+  V(JSFunction, object_function)                 \
+  V(JSFunction, promise_function)                \
+  V(JSFunction, promise_then)                    \
+  V(JSFunction, regexp_exec_function)            \
+  V(JSFunction, regexp_function)                 \
+  V(JSFunction, string_function)                 \
+  V(JSFunction, symbol_function)                 \
+  V(JSGlobalObject, global_object)               \
+  V(JSGlobalProxy, global_proxy_object)          \
+  V(JSObject, promise_prototype)                 \
+  V(Map, async_function_object_map)              \
+  V(Map, block_context_map)                      \
+  V(Map, bound_function_with_constructor_map)    \
+  V(Map, bound_function_without_constructor_map) \
+  V(Map, catch_context_map)                      \
+  V(Map, eval_context_map)                       \
+  V(Map, fast_aliased_arguments_map)             \
+  V(Map, function_context_map)                   \
+  V(Map, initial_array_iterator_map)             \
+  V(Map, initial_string_iterator_map)            \
+  V(Map, iterator_result_map)                    \
+  V(Map, js_array_holey_double_elements_map)     \
+  V(Map, js_array_holey_elements_map)            \
+  V(Map, js_array_holey_smi_elements_map)        \
+  V(Map, js_array_packed_double_elements_map)    \
+  V(Map, js_array_packed_elements_map)           \
+  V(Map, js_array_packed_smi_elements_map)       \
+  V(Map, map_key_iterator_map)                   \
+  V(Map, map_key_value_iterator_map)             \
+  V(Map, map_value_iterator_map)                 \
+  V(Map, set_key_value_iterator_map)             \
+  V(Map, set_value_iterator_map)                 \
+  V(Map, sloppy_arguments_map)                   \
+  V(Map, slow_object_with_null_prototype_map)    \
+  V(Map, strict_arguments_map)                   \
+  V(Map, with_context_map)                       \
   V(ScriptContextTable, script_context_table)
-
-#define BROKER_OPTIONAL_NATIVE_CONTEXT_FIELDS(V) \
-  V(JSFunction, regexp_exec_function)
-
-#define BROKER_COMPULSORY_BACKGROUND_NATIVE_CONTEXT_FIELDS(V) \
-  V(Map, block_context_map)                                   \
-  V(Map, catch_context_map)                                   \
-  V(Map, eval_context_map)                                    \
-  V(Map, fast_aliased_arguments_map)                          \
-  V(Map, function_context_map)                                \
-  V(Map, initial_array_iterator_map)                          \
-  V(Map, initial_string_iterator_map)                         \
-  V(Map, iterator_result_map)                                 \
-  V(Map, sloppy_arguments_map)                                \
-  V(Map, slow_object_with_null_prototype_map)                 \
-  V(Map, strict_arguments_map)                                \
-  V(Map, with_context_map)
-
-// Those are set by Bootstrapper::ExportFromRuntime, which may not yet have
-// happened when Turbofan is invoked via --always-opt.
-#define BROKER_OPTIONAL_BACKGROUND_NATIVE_CONTEXT_FIELDS(V) \
-  V(Map, async_function_object_map)                         \
-  V(Map, map_key_iterator_map)                              \
-  V(Map, map_key_value_iterator_map)                        \
-  V(Map, map_value_iterator_map)                            \
-  V(Map, set_key_value_iterator_map)                        \
-  V(Map, set_value_iterator_map)
-
-#define BROKER_NATIVE_CONTEXT_FIELDS(V)                 \
-  BROKER_COMPULSORY_NATIVE_CONTEXT_FIELDS(V)            \
-  BROKER_OPTIONAL_NATIVE_CONTEXT_FIELDS(V)              \
-  BROKER_COMPULSORY_BACKGROUND_NATIVE_CONTEXT_FIELDS(V) \
-  BROKER_OPTIONAL_BACKGROUND_NATIVE_CONTEXT_FIELDS(V)
 
 class NativeContextRef : public ContextRef {
  public:
   DEFINE_REF_CONSTRUCTOR(NativeContext, ContextRef)
 
-  bool is_unserialized_heap_object() const;
-
   Handle<NativeContext> object() const;
 
-  void Serialize();
-  void SerializeOnBackground();
+  void Serialize(NotConcurrentInliningTag tag);
 
 #define DECL_ACCESSOR(type, name) type##Ref name() const;
   BROKER_NATIVE_CONTEXT_FIELDS(DECL_ACCESSOR)
@@ -532,6 +545,7 @@ class NativeContextRef : public ContextRef {
   MapRef GetFunctionMapFromIndex(int index) const;
   MapRef GetInitialJSArrayMap(ElementsKind kind) const;
   base::Optional<JSFunctionRef> GetConstructorFunction(const MapRef& map) const;
+  bool GlobalIsDetached() const;
 };
 
 class NameRef : public HeapObjectRef {
@@ -579,8 +593,6 @@ class FeedbackVectorRef : public HeapObjectRef {
   SharedFunctionInfoRef shared_function_info() const;
   double invocation_count() const;
 
-  void Serialize();
-  bool serialized() const;
   FeedbackCellRef GetClosureFeedbackCell(int index) const;
 };
 
@@ -611,18 +623,9 @@ class AllocationSiteRef : public HeapObjectRef {
   AllocationType GetAllocationType() const;
   ObjectRef nested_site() const;
 
-  // {IsFastLiteral} determines whether the given array or object literal
-  // boilerplate satisfies all limits to be considered for fast deep-copying
-  // and computes the total size of all objects that are part of the graph.
-  //
-  // If PointsToLiteral() is false, then IsFastLiteral() is also false.
-  bool IsFastLiteral() const;
+  void SerializeRecursive(NotConcurrentInliningTag tag);
 
-  void SerializeBoilerplate();
-
-  // We only serialize boilerplate if IsFastLiteral is true.
   base::Optional<JSObjectRef> boilerplate() const;
-
   ElementsKind GetElementsKind() const;
   bool CanInlineCall() const;
 };
@@ -673,29 +676,33 @@ class V8_EXPORT_PRIVATE MapRef : public HeapObjectRef {
 
   OddballType oddball_type() const;
 
+  // Note: Only returns a value if the requested elements kind matches the
+  // current kind, or if the current map is an unmodified JSArray initial map.
+  base::Optional<MapRef> AsElementsKind(ElementsKind kind) const;
+
 #define DEF_TESTER(Type, ...) bool Is##Type##Map() const;
   INSTANCE_TYPE_CHECKERS(DEF_TESTER)
 #undef DEF_TESTER
 
-  void SerializeBackPointer();
+  void SerializeBackPointer(NotConcurrentInliningTag tag);
   HeapObjectRef GetBackPointer() const;
 
-  void SerializePrototype();
+  void SerializePrototype(NotConcurrentInliningTag tag);
   // TODO(neis): We should be able to remove TrySerializePrototype once
   // concurrent-inlining is always on. Then we can also change the return type
   // of prototype() back to HeapObjectRef.
-  bool TrySerializePrototype();
+  bool TrySerializePrototype(NotConcurrentInliningTag tag);
   base::Optional<HeapObjectRef> prototype() const;
 
-  void SerializeForElementLoad();
-
-  void SerializeForElementStore();
+  void SerializeForElementStore(NotConcurrentInliningTag tag);
   bool HasOnlyStablePrototypesWithFastElements(
       ZoneVector<MapRef>* prototype_maps);
 
   // Concerning the underlying instance_descriptors:
-  bool TrySerializeOwnDescriptor(InternalIndex descriptor_index);
-  void SerializeOwnDescriptor(InternalIndex descriptor_index);
+  bool TrySerializeOwnDescriptor(InternalIndex descriptor_index,
+                                 NotConcurrentInliningTag tag);
+  void SerializeOwnDescriptor(InternalIndex descriptor_index,
+                              NotConcurrentInliningTag tag);
   bool serialized_own_descriptor(InternalIndex descriptor_index) const;
   MapRef FindFieldOwner(InternalIndex descriptor_index) const;
   PropertyDetails GetPropertyDetails(InternalIndex descriptor_index) const;
@@ -707,13 +714,10 @@ class V8_EXPORT_PRIVATE MapRef : public HeapObjectRef {
 
   DescriptorArrayRef instance_descriptors() const;
 
-  void SerializeRootMap();
+  void SerializeRootMap(NotConcurrentInliningTag tag);
   base::Optional<MapRef> FindRootMap() const;
 
-  // Available after calling JSFunctionRef::Serialize on a function that has
-  // this map as initial map.
   ObjectRef GetConstructor() const;
-  base::Optional<MapRef> AsElementsKind(ElementsKind kind) const;
 };
 
 struct HolderLookupResult {
@@ -736,7 +740,7 @@ class FunctionTemplateInfoRef : public HeapObjectRef {
   // The following returns true if the CallHandlerInfo is present.
   bool has_call_code() const;
 
-  void SerializeCallCode();
+  void SerializeCallCode(NotConcurrentInliningTag tag);
   base::Optional<CallHandlerInfoRef> call_code() const;
   ZoneVector<Address> c_functions() const;
   ZoneVector<const CFunctionInfo*> c_signatures() const;
@@ -863,13 +867,12 @@ class ScopeInfoRef : public HeapObjectRef {
   bool HasOuterScopeInfo() const;
   bool HasContextExtensionSlot() const;
 
-  // Only serialized via SerializeScopeInfoChain.
   ScopeInfoRef OuterScopeInfo() const;
-  void SerializeScopeInfoChain();
 };
 
 #define BROKER_SFI_FIELDS(V)                       \
   V(int, internal_formal_parameter_count)          \
+  V(bool, has_simple_parameters)                   \
   V(bool, has_duplicate_parameters)                \
   V(int, function_map_index)                       \
   V(FunctionKind, kind)                            \
@@ -891,10 +894,12 @@ class V8_EXPORT_PRIVATE SharedFunctionInfoRef : public HeapObjectRef {
 
   Handle<SharedFunctionInfo> object() const;
 
-  int builtin_id() const;
+  Builtin builtin_id() const;
   int context_header_size() const;
   BytecodeArrayRef GetBytecodeArray() const;
   SharedFunctionInfo::Inlineability GetInlineability() const;
+  base::Optional<FunctionTemplateInfoRef> function_template_info() const;
+  ScopeInfoRef scope_info() const;
 
 #define DECL_ACCESSOR(type, name) type name() const;
   BROKER_SFI_FIELDS(DECL_ACCESSOR)
@@ -903,12 +908,6 @@ class V8_EXPORT_PRIVATE SharedFunctionInfoRef : public HeapObjectRef {
   bool IsInlineable() const {
     return GetInlineability() == SharedFunctionInfo::kIsInlineable;
   }
-
-  void SerializeFunctionTemplateInfo();
-  base::Optional<FunctionTemplateInfoRef> function_template_info() const;
-
-  void SerializeScopeInfoChain();
-  ScopeInfoRef scope_info() const;
 };
 
 class StringRef : public NameRef {
@@ -923,14 +922,20 @@ class StringRef : public NameRef {
       uint32_t index, SerializationPolicy policy =
                           SerializationPolicy::kAssumeSerialized) const;
 
-  // When concurrently accessing non-read-only non-internalized strings, we
-  // return base::nullopt for these methods.
+  // When concurrently accessing non-read-only non-supported strings, we return
+  // base::nullopt for these methods.
   base::Optional<int> length() const;
   base::Optional<uint16_t> GetFirstChar();
   base::Optional<double> ToNumber();
 
   bool IsSeqString() const;
   bool IsExternalString() const;
+
+ private:
+  // With concurrent inlining on, we currently support reading directly
+  // internalized strings, and thin strings (which are pointers to internalized
+  // strings).
+  bool SupportedStringKind() const;
 };
 
 class SymbolRef : public NameRef {
@@ -950,9 +955,8 @@ class JSTypedArrayRef : public JSObjectRef {
   size_t length() const;
   void* data_ptr() const;
 
-  void Serialize();
+  void Serialize(NotConcurrentInliningTag tag);
   bool serialized() const;
-  bool ShouldHaveBeenSerialized() const;
 
   HeapObjectRef buffer() const;
 };
@@ -962,8 +966,6 @@ class SourceTextModuleRef : public HeapObjectRef {
   DEFINE_REF_CONSTRUCTOR(SourceTextModule, HeapObjectRef)
 
   Handle<SourceTextModule> object() const;
-
-  void Serialize();
 
   base::Optional<CellRef> GetCell(int cell_index) const;
   base::Optional<ObjectRef> import_meta() const;
@@ -989,15 +991,9 @@ class JSGlobalObjectRef : public JSObjectRef {
 
   Handle<JSGlobalObject> object() const;
 
-  bool IsDetached() const;
+  bool IsDetachedFrom(JSGlobalProxyRef const& proxy) const;
 
-  // If {serialize} is false:
-  //   If the property is known to exist as a property cell (on the global
-  //   object), return that property cell. Otherwise (not known to exist as a
-  //   property cell or known not to exist as a property cell) return nothing.
-  // If {serialize} is true:
-  //   Like above but potentially access the heap and serialize the necessary
-  //   information.
+  // Can be called even when there is no property cell for the given name.
   base::Optional<PropertyCellRef> GetPropertyCell(
       NameRef const& name, SerializationPolicy policy =
                                SerializationPolicy::kAssumeSerialized) const;
@@ -1017,6 +1013,15 @@ class CodeRef : public HeapObjectRef {
   Handle<Code> object() const;
 
   unsigned GetInlinedBytecodeSize() const;
+};
+
+// CodeDataContainerRef doesn't appear to be used, but it is used via CodeT when
+// V8_EXTERNAL_CODE_SPACE is defined.
+class CodeDataContainerRef : public HeapObjectRef {
+ public:
+  DEFINE_REF_CONSTRUCTOR(CodeDataContainer, HeapObjectRef)
+
+  Handle<CodeDataContainer> object() const;
 };
 
 class InternalizedStringRef : public StringRef {

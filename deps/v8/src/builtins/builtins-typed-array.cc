@@ -99,7 +99,12 @@ BUILTIN(TypedArrayPrototypeCopyWithin) {
   count = count * element_size;
 
   uint8_t* data = static_cast<uint8_t*>(array->DataPtr());
-  std::memmove(data + to, data + from, count);
+  if (array->buffer().is_shared()) {
+    base::Relaxed_Memmove(reinterpret_cast<base::Atomic8*>(data + to),
+                          reinterpret_cast<base::Atomic8*>(data + from), count);
+  } else {
+    std::memmove(data + to, data + from, count);
+  }
 
   return *array;
 }
@@ -114,7 +119,7 @@ BUILTIN(TypedArrayPrototypeFill) {
   ElementsKind kind = array->GetElementsKind();
 
   Handle<Object> obj_value = args.atOrUndefined(isolate, 1);
-  if (kind == BIGINT64_ELEMENTS || kind == BIGUINT64_ELEMENTS) {
+  if (IsBigIntTypedArrayElementsKind(kind)) {
     ASSIGN_RETURN_FAILURE_ON_EXCEPTION(isolate, obj_value,
                                        BigInt::FromObject(isolate, obj_value));
   } else {
@@ -122,7 +127,7 @@ BUILTIN(TypedArrayPrototypeFill) {
                                        Object::ToNumber(isolate, obj_value));
   }
 
-  int64_t len = array->length();
+  int64_t len = array->GetLength();
   int64_t start = 0;
   int64_t end = len;
 

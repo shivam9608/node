@@ -47,8 +47,6 @@
   'language/statements/with/unscopables-inc-dec': [FAIL],
 
   # https://code.google.com/p/v8/issues/detail?id=4249
-  'language/expressions/assignment/S11.13.1_A7_T1': [FAIL],
-  'language/expressions/assignment/S11.13.1_A7_T2': [FAIL],
   'language/expressions/assignment/S11.13.1_A7_T3': [FAIL],
   'language/expressions/postfix-increment/S11.3.1_A6_T3': [FAIL],
   'language/expressions/postfix-decrement/S11.3.2_A6_T3': [FAIL],
@@ -58,9 +56,6 @@
   # https://code.google.com/p/v8/issues/detail?id=4250
   'language/expressions/assignment/S11.13.1_A5*': [FAIL],
   'language/expressions/assignment/S11.13.1_A6*': [FAIL],
-
-  # https://bugs.chromium.org/p/v8/issues/detail?id=4709
-  'language/expressions/assignment/fn-name-lhs-cover': [FAIL],
 
   # https://code.google.com/p/v8/issues/detail?id=4251
   'language/expressions/postfix-increment/S11.3.1_A5_T1': [FAIL],
@@ -73,11 +68,6 @@
 
   # https://code.google.com/p/v8/issues/detail?id=10958
   'language/module-code/eval-gtbndng-indirect-faux-assertion': [FAIL],
-
-  # https://code.google.com/p/v8/issues/detail?id=8771
-  'language/computed-property-names/class/static/method-number': [FAIL],
-  'language/computed-property-names/class/static/method-string': [FAIL],
-  'language/computed-property-names/class/static/method-symbol': [FAIL],
 
   # https://bugs.chromium.org/p/v8/issues/detail?id=4895
   # Some TypedArray methods throw due to the same bug, from Get
@@ -508,32 +498,11 @@
   'language/expressions/coalesce/tco-pos-undefined': [FAIL],
   'language/expressions/coalesce/tco-pos-null': [FAIL],
 
-  # https://github.com/tc39/test262/issues/2034
-  'language/expressions/postfix-decrement/arguments': [SKIP],
-  'language/expressions/postfix-decrement/arguments-nostrict': [SKIP],
-  'language/expressions/postfix-decrement/eval': [SKIP],
-  'language/expressions/postfix-decrement/eval-nostrict': [SKIP],
-  'language/expressions/postfix-increment/arguments': [SKIP],
-  'language/expressions/postfix-increment/arguments-nostrict': [SKIP],
-  'language/expressions/postfix-increment/eval': [SKIP],
-  'language/expressions/postfix-increment/eval-nostrict': [SKIP],
-  'language/expressions/prefix-decrement/arguments': [SKIP],
-  'language/expressions/prefix-decrement/arguments-nostrict': [SKIP],
-  'language/expressions/prefix-decrement/eval': [SKIP],
-  'language/expressions/prefix-decrement/eval-nostrict': [SKIP],
-  'language/expressions/prefix-increment/arguments': [SKIP],
-  'language/expressions/prefix-increment/arguments-nostrict': [SKIP],
-  'language/expressions/prefix-increment/eval': [SKIP],
-  'language/expressions/prefix-increment/eval-nostrict': [SKIP],
-
   # https://bugs.chromium.org/p/v8/issues/detail?id=9049
   'language/comments/hashbang/use-strict': [SKIP],
 
   # http://crbug/v8/10447
   'intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-yes-to-true': [FAIL],
-
-  # https://bugs.chromium.org/p/v8/issues/detail?id=9818
-  'built-ins/AsyncFunction/proto-from-ctor-realm': [FAIL],
 
   # https://bugs.chromium.org/p/v8/issues/detail?id=10381
   'built-ins/Array/prototype/concat/arg-length-near-integer-limit': [FAIL],
@@ -589,8 +558,68 @@
   # https://bugs.chromium.org/p/v8/issues/detail?id=11689
   'built-ins/BigInt/wrapper-object-ordinary-toprimitive': [FAIL],
 
-   # https://bugs.chromium.org/p/v8/issues/detail?id=11690
+  # https://bugs.chromium.org/p/v8/issues/detail?id=11690
   'language/module-code/export-expname-binding-index': [FAIL],
+
+  # https://bugs.chromium.org/p/v8/issues/detail?id=11111
+  'built-ins/ArrayBuffer/prototype/resize/resize-grow': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-same-size': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-same-size-zero-explicit': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-same-size-zero-implicit': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-shrink': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-shrink-zero-explicit': [FAIL],
+  'built-ins/ArrayBuffer/prototype/resize/resize-shrink-zero-implicit': [FAIL],
+  'built-ins/ArrayBuffer/prototype/transfer/*': [FAIL],
+  'built-ins/ArrayBuffer/prototype/transfer/this-is-sharedarraybuffer': [PASS],
+  'built-ins/DataView/prototype/byteLength/resizable-array-buffer-auto': [FAIL],
+  'built-ins/DataView/prototype/byteLength/resizable-array-buffer-fixed': [FAIL],
+  'built-ins/DataView/prototype/byteOffset/resizable-array-buffer-auto': [FAIL],
+  'built-ins/DataView/prototype/byteOffset/resizable-array-buffer-fixed': [FAIL],
+  'built-ins/DataView/prototype/getBigInt64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getBigUint64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getFloat32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getFloat64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getInt16/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getInt32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getInt8/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getUint16/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getUint32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/getUint8/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setBigInt64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setBigUint64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setFloat32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setFloat64/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setInt16/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setInt32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setInt8/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setUint16/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setUint32/resizable-buffer': [FAIL],
+  'built-ins/DataView/prototype/setUint8/resizable-buffer': [FAIL],
+  'built-ins/TypedArrayConstructors/ctors/typedarray-arg/out-of-bounds-when-species-retrieved-different-type': [FAIL],
+  'built-ins/TypedArrayConstructors/ctors/typedarray-arg/out-of-bounds-when-species-retrieved-same-type': [FAIL],
+  'built-ins/TypedArray/prototype/byteOffset/resizable-array-buffer-auto': [FAIL],
+  'built-ins/TypedArray/prototype/byteOffset/resizable-array-buffer-fixed': [FAIL],
+
+  # https://bugs.chromium.org/p/v8/issues/detail?id=11544
+  'built-ins/Temporal/Calendar/prototype/fields/long-input': [FAIL],
+  'built-ins/Temporal/now/instant/extensible': [FAIL],
+  'built-ins/Temporal/now/instant/length': [FAIL],
+  'built-ins/Temporal/now/instant/name': [FAIL],
+  'built-ins/Temporal/now/instant/not-a-constructor': [FAIL],
+  'built-ins/Temporal/now/instant/prop-desc': [FAIL],
+  'built-ins/Temporal/now/instant/return-value-distinct': [FAIL],
+  'built-ins/Temporal/now/instant/return-value-prototype': [FAIL],
+  'built-ins/Temporal/now/instant/return-value-value': [FAIL],
+  'built-ins/Temporal/now/timeZone/extensible': [FAIL],
+  'built-ins/Temporal/now/timeZone/length': [FAIL],
+  'built-ins/Temporal/now/timeZone/name': [FAIL],
+  'built-ins/Temporal/now/timeZone/new-object': [FAIL],
+  'built-ins/Temporal/now/timeZone/not-a-constructor': [FAIL],
+  'built-ins/Temporal/now/timeZone/prop-desc': [FAIL],
+  'built-ins/Temporal/now/timeZone/return-value': [FAIL],
+
+  # https://bugs.chromium.org/p/v8/issues/detail?id=11934
+  'language/expressions/delete/super-property-null-base': [FAIL],
 
   ######################## NEEDS INVESTIGATION ###########################
 
@@ -629,6 +658,41 @@
   # Test against internals of harness; we plug in differently
   'harness/detachArrayBuffer': [SKIP],
   'harness/detachArrayBuffer-host-detachArrayBuffer': [SKIP],
+
+  # https://github.com/tc39/test262/issues/3038
+  'built-ins/SharedArrayBuffer/options-maxbytelength-undefined': [FAIL],
+  'built-ins/SharedArrayBuffer/options-non-object': [FAIL],
+  'built-ins/SharedArrayBuffer/prototype/growable/this-is-arraybuffer': [FAIL],
+  'built-ins/SharedArrayBuffer/prototype/maxByteLength/this-is-arraybuffer': [FAIL],
+
+  # https://github.com/tc39/test262/issues/3109
+  'built-ins/TypedArrayConstructors/internals/HasProperty/resizable-array-buffer-fixed': [FAIL],
+
+  # https://github.com/tc39/test262/issues/3111
+  'built-ins/TypedArray/prototype/at/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/copyWithin/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/entries/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/every/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/fill/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/filter/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/findIndex/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/find/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/forEach/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/includes/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/indexOf/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/join/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/keys/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/lastIndexOf/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/map/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/reduce/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/reduceRight/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/reverse/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/set/typedarray-arg-target-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/slice/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/some/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/sort/return-abrupt-from-this-out-of-bounds': [FAIL],
+  'built-ins/TypedArray/prototype/toLocaleString/return-abrupt-from-this-out-of-bounds': [SKIP],
+  'built-ins/TypedArray/prototype/values/return-abrupt-from-this-out-of-bounds': [FAIL],
 
   ############################ SKIPPED TESTS #############################
 
@@ -741,6 +805,18 @@
   'built-ins/ArrayBuffer/length-is-too-large-throws': [SKIP],
   'built-ins/SharedArrayBuffer/allocation-limit': [SKIP],
   'built-ins/SharedArrayBuffer/length-is-too-large-throws': [SKIP],
+
+  # Tests that need to run sequentially (e.g. due to memory consumption).
+  'annexB/built-ins/RegExp/RegExp-leading-escape-BMP': [PASS, HEAVY],
+  'annexB/built-ins/RegExp/RegExp-trailing-escape-BMP': [PASS, HEAVY],
+  'built-ins/decodeURI/*': [PASS, HEAVY],
+  'built-ins/decodeURIComponent/*': [PASS, HEAVY],
+  'built-ins/RegExp/property-escapes/generated/*': [PASS, HEAVY],
+  'language/comments/S7.4_A5': [PASS, HEAVY],
+  'language/comments/S7.4_A6': [PASS, HEAVY],
+
+  # Times out on TSAN - https://bugs.chromium.org/p/v8/issues/detail?id=11898
+  'intl402/supportedLocalesOf-unicode-extensions-ignored': [SKIP],
 }],  # asan == True or msan == True or tsan == True
 
 ['system == android', {

@@ -582,7 +582,7 @@ void Assembler::bind(Label* label) {
       // Internal references do not get patched to an instruction but directly
       // to an address.
       internal_reference_positions_.push_back(linkoffset);
-      base::Memcpy(link, &pc_, kSystemPointerSize);
+      memcpy(link, &pc_, kSystemPointerSize);
     } else {
       link->SetImmPCOffsetTarget(options(),
                                  reinterpret_cast<Instruction*>(pc_));
@@ -4276,6 +4276,8 @@ bool Assembler::IsImmFP64(double imm) {
 }
 
 void Assembler::GrowBuffer() {
+  bool previously_on_heap = buffer_->IsOnHeap();
+
   // Compute new buffer size.
   int old_size = buffer_->size();
   int new_size = std::min(2 * old_size, old_size + 1 * MB);
@@ -4318,6 +4320,21 @@ void Assembler::GrowBuffer() {
     WriteUnalignedValue<intptr_t>(address, internal_ref);
   }
 
+  // Patch on-heap references to handles.
+  if (previously_on_heap && !buffer_->IsOnHeap()) {
+    Address base = reinterpret_cast<Address>(buffer_->start());
+    for (auto p : saved_handles_for_raw_object_ptr_) {
+      WriteUnalignedValue(base + p.first, p.second);
+    }
+    for (auto p : saved_offsets_for_runtime_entries_) {
+      Instruction* instr = reinterpret_cast<Instruction*>(base + p.first);
+      DCHECK(is_int26(p.second));
+      DCHECK(instr->IsBranchAndLink() || instr->IsUnconditionalBranch());
+      instr->SetInstructionBits(instr->Mask(UnconditionalBranchMask) |
+                                p.second);
+    }
+  }
+
   // Pending relocation entries are also relative, no need to relocate.
 }
 
@@ -4328,12 +4345,14 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data,
       (rmode == RelocInfo::CONST_POOL) || (rmode == RelocInfo::VENEER_POOL) ||
       (rmode == RelocInfo::DEOPT_SCRIPT_OFFSET) ||
       (rmode == RelocInfo::DEOPT_INLINING_ID) ||
-      (rmode == RelocInfo::DEOPT_REASON) || (rmode == RelocInfo::DEOPT_ID)) {
+      (rmode == RelocInfo::DEOPT_REASON) || (rmode == RelocInfo::DEOPT_ID) ||
+      (rmode == RelocInfo::LITERAL_CONSTANT)) {
     // Adjust code for new modes.
     DCHECK(RelocInfo::IsDeoptReason(rmode) || RelocInfo::IsDeoptId(rmode) ||
            RelocInfo::IsDeoptPosition(rmode) ||
            RelocInfo::IsInternalReference(rmode) ||
            RelocInfo::IsDataEmbeddedObject(rmode) ||
+           RelocInfo::IsLiteralConstant(rmode) ||
            RelocInfo::IsConstPool(rmode) || RelocInfo::IsVeneerPool(rmode));
     // These modes do not need an entry in the constant pool.
   } else if (constant_pool_mode == NEEDS_POOL_ENTRY) {
@@ -4493,8 +4512,8 @@ void Assembler::RecordVeneerPool(int location_offset, int size) {
 
 void Assembler::EmitVeneers(bool force_emit, bool need_protection,
                             size_t margin) {
+  ASM_CODE_COMMENT(this);
   BlockPoolsScope scope(this, PoolEmissionCheck::kSkip);
-  RecordComment("[ Veneers");
 
   // The exact size of the veneer pool must be recorded (see the comment at the
   // declaration site of RecordConstPool()), but computing the number of
@@ -4587,8 +4606,6 @@ void Assembler::EmitVeneers(bool force_emit, bool need_protection,
   RecordVeneerPool(veneer_pool_relocinfo_loc, pool_size);
 
   bind(&end);
-
-  RecordComment("]");
 }
 
 void Assembler::CheckVeneerPool(bool force_emit, bool require_jump,

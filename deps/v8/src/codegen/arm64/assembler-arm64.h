@@ -213,6 +213,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void DataAlign(int m);
   // Aligns code to something that's optimal for a jump target for the platform.
   void CodeTargetAlign();
+  void LoopHeaderAlign() { CodeTargetAlign(); }
 
   inline void Unreachable();
 
@@ -2067,7 +2068,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void dd(uint32_t data, RelocInfo::Mode rmode = RelocInfo::NONE) {
     BlockPoolsScope no_pool_scope(this);
     if (!RelocInfo::IsNone(rmode)) {
-      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode));
+      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode) ||
+             RelocInfo::IsLiteralConstant(rmode));
       RecordRelocInfo(rmode);
     }
     dc32(data);
@@ -2075,7 +2077,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void dq(uint64_t data, RelocInfo::Mode rmode = RelocInfo::NONE) {
     BlockPoolsScope no_pool_scope(this);
     if (!RelocInfo::IsNone(rmode)) {
-      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode));
+      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode) ||
+             RelocInfo::IsLiteralConstant(rmode));
       RecordRelocInfo(rmode);
     }
     dc64(data);
@@ -2083,7 +2086,8 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
   void dp(uintptr_t data, RelocInfo::Mode rmode = RelocInfo::NONE) {
     BlockPoolsScope no_pool_scope(this);
     if (!RelocInfo::IsNone(rmode)) {
-      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode));
+      DCHECK(RelocInfo::IsDataEmbeddedObject(rmode) ||
+             RelocInfo::IsLiteralConstant(rmode));
       RecordRelocInfo(rmode);
     }
     dc64(data);
@@ -2616,7 +2620,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
     STATIC_ASSERT(sizeof(instruction) == kInstrSize);
     DCHECK_LE(pc_ + sizeof(instruction), buffer_start_ + buffer_->size());
 
-    base::Memcpy(pc_, &instruction, sizeof(instruction));
+    memcpy(pc_, &instruction, sizeof(instruction));
     pc_ += sizeof(instruction);
     CheckBuffer();
   }
@@ -2628,7 +2632,7 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
 
     // TODO(all): Somehow register we have some data here. Then we can
     // disassemble it correctly.
-    base::Memcpy(pc_, data, size);
+    memcpy(pc_, data, size);
     pc_ += size;
     CheckBuffer();
   }
@@ -2675,6 +2679,12 @@ class V8_EXPORT_PRIVATE Assembler : public AssemblerBase {
 
   static size_t GetApproxMaxDistToConstPoolForTesting() {
     return ConstantPool::kApproxDistToPool64;
+  }
+
+  bool EmbeddedObjectMatches(int pc_offset, Handle<Object> object,
+                             EmbeddedObjectIndex index) {
+    return *reinterpret_cast<uint64_t*>(buffer_->start() + pc_offset) ==
+           (IsOnHeap() ? object->ptr() : index);
   }
 #endif
 

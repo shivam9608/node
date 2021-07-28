@@ -97,16 +97,34 @@ class V8_EXPORT_PRIVATE CompilationDependencies : public ZoneObject {
   // Record the assumption that {site}'s {ElementsKind} doesn't change.
   void DependOnElementsKind(const AllocationSiteRef& site);
 
+  void DependOnOwnConstantElement(const JSObjectRef& holder, uint32_t index,
+                                  const ObjectRef& element);
+
+  // Record the assumption that the {value} read from {holder} at {index} on the
+  // background thread is the correct value for a given property.
+  void DependOnOwnConstantDataProperty(const JSObjectRef& holder,
+                                       const MapRef& map,
+                                       Representation representation,
+                                       FieldIndex index,
+                                       const ObjectRef& value);
+
+  // Record the assumption that the {value} read from {holder} at {index} on the
+  // background thread is the correct value for a given dictionary property.
+  void DependOnOwnConstantDictionaryProperty(const JSObjectRef& holder,
+                                             InternalIndex index,
+                                             const ObjectRef& value);
+
   // For each given map, depend on the stability of (the maps of) all prototypes
   // up to (and including) the {last_prototype}.
-  template <class MapContainer>
   void DependOnStablePrototypeChains(
-      MapContainer const& receiver_maps, WhereToStart start,
+      ZoneVector<MapRef> const& receiver_maps, WhereToStart start,
       base::Optional<JSObjectRef> last_prototype =
           base::Optional<JSObjectRef>());
 
   // Like DependOnElementsKind but also applies to all nested allocation sites.
   void DependOnElementsKinds(const AllocationSiteRef& site);
+
+  void DependOnConsistentJSFunctionView(const JSFunctionRef& function);
 
   // Predict the final instance size for {function}'s initial map and record
   // the assumption that this prediction is correct. In addition, register

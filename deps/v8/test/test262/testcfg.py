@@ -53,10 +53,12 @@ FEATURE_FLAGS = {
   'IsHTMLDDA': '--allow-natives-syntax',
   'top-level-await': '--harmony-top-level-await',
   'regexp-match-indices': '--harmony-regexp-match-indices',
-  # https://github.com/tc39/test262/pull/2395
   'regexp-named-groups': '--harmony-regexp-match-indices',
   'error-cause': '--harmony-error-cause',
   'import-assertions': '--harmony-import-assertions',
+  'Object.hasOwn': '--harmony-object-has-own',
+  'class-static-block': '--harmony-class-static-blocks',
+  'resizable-arraybuffer': '--harmony-rab-gsab',
 }
 
 SKIPPED_FEATURES = set([])

@@ -332,12 +332,9 @@ base::Optional<MapRef> NodeProperties::GetJSCreateMap(JSHeapBroker* broker,
       mnewtarget.Ref(broker).IsJSFunction()) {
     ObjectRef target = mtarget.Ref(broker);
     JSFunctionRef newtarget = mnewtarget.Ref(broker).AsJSFunction();
-    if (newtarget.map().has_prototype_slot() && newtarget.has_initial_map()) {
-      if (!newtarget.serialized()) {
-        TRACE_BROKER_MISSING(broker, "initial map on " << newtarget);
-        return base::nullopt;
-      }
-      MapRef initial_map = newtarget.initial_map();
+    if (newtarget.map().has_prototype_slot() &&
+        newtarget.has_initial_map(broker->dependencies())) {
+      MapRef initial_map = newtarget.initial_map(broker->dependencies());
       if (initial_map.GetConstructor().equals(target)) {
         DCHECK(target.AsJSFunction().map().is_constructor());
         DCHECK(newtarget.map().is_constructor());
@@ -406,10 +403,11 @@ NodeProperties::InferMapsResult NodeProperties::InferMapsUnsafe(
       }
       case IrOpcode::kJSCreatePromise: {
         if (IsSame(receiver, effect)) {
-          *maps_return = ZoneHandleSet<Map>(broker->target_native_context()
-                                                .promise_function()
-                                                .initial_map()
-                                                .object());
+          *maps_return =
+              ZoneHandleSet<Map>(broker->target_native_context()
+                                     .promise_function()
+                                     .initial_map(broker->dependencies())
+                                     .object());
           return result;
         }
         break;
@@ -597,15 +595,16 @@ bool NodeProperties::IsFreshObject(Node* node) {
     }
     NumberMatcher matcher(node->InputAt(0));
     if (matcher.HasResolvedValue()) {
-      Builtins::Name callee =
-          static_cast<Builtins::Name>(matcher.ResolvedValue());
+      Builtin callee = static_cast<Builtin>(matcher.ResolvedValue());
       // Note: Make sure to only add builtins which are guaranteed to return a
       // fresh object. E.g. kWasmAllocateFixedArray may return the canonical
       // empty array, and kWasmAllocateRtt may return a cached rtt.
-      return callee == Builtins::kWasmAllocateArrayWithRtt ||
-             callee == Builtins::kWasmAllocateStructWithRtt ||
-             callee == Builtins::kWasmAllocateObjectWrapper ||
-             callee == Builtins::kWasmAllocatePair;
+      return callee == Builtin::kWasmAllocateArray_Uninitialized ||
+             callee == Builtin::kWasmAllocateArray_InitNull ||
+             callee == Builtin::kWasmAllocateArray_InitZero ||
+             callee == Builtin::kWasmAllocateStructWithRtt ||
+             callee == Builtin::kWasmAllocateObjectWrapper ||
+             callee == Builtin::kWasmAllocatePair;
     }
   }
 #endif  // V8_ENABLE_WEBASSEMBLY
